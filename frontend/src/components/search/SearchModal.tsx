@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { X, Search, ArrowLeft } from 'lucide-react'
-import { products } from '../../lib/mockData'
+import { search } from '../../api/products'
 import { Link } from 'react-router-dom'
 import ImageWithFallback from '../ui/ImageWithFallback'
 import { motion, AnimatePresence } from 'framer-motion'
 
-const RECENTS = ['vestido linho', 'blazer', 'sapato couro']
 const TRENDING = ['wide leg', 'minimal', 'preto', 'alfaiataria']
 
 type Props = {
@@ -16,15 +15,32 @@ type Props = {
 export default function SearchModal({ open, onClose }: Props) {
   const [query, setQuery] = useState('')
   const [debounced, setDebounced] = useState('')
+  const [results, setResults] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const t = setTimeout(() => setDebounced(query.trim().toLowerCase()), 200)
+    const t = setTimeout(() => setDebounced(query.trim()), 300)
     return () => clearTimeout(t)
   }, [query])
 
-  const results = useMemo(() => {
-    if (!debounced) return []
-    return products.filter((p) => p.name.toLowerCase().includes(debounced)).slice(0, 6)
+  useEffect(() => {
+    const searchProducts = async () => {
+      if (!debounced) {
+        setResults([])
+        return
+      }
+      try {
+        setLoading(true)
+        const data = await search(debounced)
+        setResults(Array.isArray(data) ? data.slice(0, 6) : [])
+      } catch (error) {
+        console.error('Search error:', error)
+        setResults([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    searchProducts()
   }, [debounced])
 
   const handleCancel = () => {
@@ -88,25 +104,7 @@ export default function SearchModal({ open, onClose }: Props) {
             <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 64px)' }}>
               {!debounced && (
                 <div className="px-4 py-6 space-y-6">
-                  {/* Recent Searches */}
-                  <div>
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-3">
-                      Buscas Recentes
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {RECENTS.map((r) => (
-                        <button
-                          key={r}
-                          className="rounded-full bg-neutral-100 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-200 transition"
-                          onClick={() => setQuery(r)}
-                        >
-                          {r}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Trending Searches */}
+                  {/* Trending */}
                   <div>
                     <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400 mb-3">
                       Em Alta
@@ -115,8 +113,8 @@ export default function SearchModal({ open, onClose }: Props) {
                       {TRENDING.map((r) => (
                         <button
                           key={r}
-                          className="rounded-full bg-neutral-100 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-200 transition"
                           onClick={() => setQuery(r)}
+                          className="rounded-full bg-neutral-100 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-200 transition"
                         >
                           {r}
                         </button>

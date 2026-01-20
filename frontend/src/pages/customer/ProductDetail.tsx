@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '../../components/ui/button'
 import { useCartStore } from '../../store/cartStore'
-import { products } from '../../lib/mockData'
+import { getById } from '../../api/products'
 import SizeSelector from '../../components/product/SizeSelector'
 import ColorSelector from '../../components/product/ColorSelector'
 import ProductCard from '../../components/product/ProductCard'
@@ -14,7 +14,25 @@ export default function ProductDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const addItem = useCartStore((s) => s.addItem)
-  const product = products.find((p) => p.id === id)
+  const [product, setProduct] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [related, setRelated] = useState<any[]>([])
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      if (!id) return
+      try {
+        setLoading(true)
+        const data = await getById(id)
+        setProduct(data)
+      } catch (error) {
+        console.error('Error fetching product:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProduct()
+  }, [id])
   const [selectedColor, setColor] = useState<string | undefined>(product?.colors[0])
   const [selectedSize, setSize] = useState<'XS' | 'S' | 'M' | 'L' | 'XL' | undefined>(product?.sizes[2])
   const [activeImageIndex, setActiveImageIndex] = useState(0)
@@ -90,10 +108,9 @@ export default function ProductDetail() {
       [section]: !prev[section],
     }))
   }
-  const related = useMemo(
-    () => products.filter((p) => p.id !== product?.id).slice(0, 4),
-    [product?.id]
-  )
+
+  if (loading)
+    return <div className="text-center py-12 text-neutral-500">Carregando produto...</div>
 
   if (!product)
     return <div className="text-center py-12 text-neutral-500">Produto não encontrado.</div>

@@ -3,21 +3,20 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { registerSchema } from '../../lib/validators'
 import { Input } from '../../components/ui/input'
 import { Button } from '../../components/ui/button'
-import { useAuth } from '../../hooks/useAuth'
+import { useAuthStore } from '../../store/authStore'
 import { Link, useNavigate } from 'react-router-dom'
 import ImageWithFallback from '../../components/ui/ImageWithFallback'
 import { useState } from 'react'
 import { toast } from 'react-toastify'
 
 export default function Register() {
-  const auth = useAuth()
-  const { register: registerUser } = auth
+  const register = useAuthStore((state) => state.register)
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
   
   const form = useForm({ 
     resolver: zodResolver(registerSchema),
-    mode: 'onBlur', // Validate on blur for better UX
+    mode: 'onBlur',
     defaultValues: {
       name: '',
       email: '',
@@ -28,11 +27,19 @@ export default function Register() {
   const onSubmit = form.handleSubmit(async (data) => {
     try {
       setIsLoading(true)
-      await registerUser(data.name, data.email, data.password)
-      toast.success('Conta criada! Redirecionando...')
-      navigate('/profile')
+      await register(data.name, data.email, data.password)
+      toast.success('Conta criada com sucesso!')
+      navigate('/')
     } catch (err: any) {
-      toast.error('Erro ao criar conta. Tente novamente.')
+      const status = err?.response?.status
+      
+      if (status === 409) {
+        toast.error('Email já cadastrado. Tente fazer login.')
+      } else if (status === 400) {
+        toast.error('Dados inválidos. Verifique os campos.')
+      } else {
+        toast.error('Erro ao criar conta. Tente novamente.')
+      }
       console.error('Registration error:', err)
     } finally {
       setIsLoading(false)
@@ -44,7 +51,7 @@ export default function Register() {
       <div className="w-full max-w-5xl">
         <div className="grid min-h-[80vh] grid-cols-1 md:grid-cols-2 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-soft">
           
-          {/* Coluna da Imagem (Invertida ou diferente para variar) */}
+          {/* Coluna da Imagem */}
           <div className="relative hidden md:block order-last md:order-first">
             <ImageWithFallback
               src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&q=80"

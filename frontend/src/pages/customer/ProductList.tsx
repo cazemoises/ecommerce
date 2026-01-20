@@ -1,7 +1,6 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import ProductCard from '../../components/product/ProductCard'
-import { products as mockProducts } from '../../lib/mockData'
 import { Loader2 } from 'lucide-react'
 import * as api from '../../api/products'
 
@@ -36,11 +35,10 @@ export default function ProductList() {
     const fetchProducts = async () => {
       try {
         const data = await api.getProducts(1, 100)
-        setProducts(data || [])
+        setProducts(data as any || [])
       } catch (error) {
         console.error('Error fetching products:', error)
-        // Fallback to mock data
-        setProducts(mockProducts)
+        setProducts([])
       } finally {
         setLoading(false)
       }
@@ -49,9 +47,6 @@ export default function ProductList() {
     fetchProducts()
   }, [])
 
-  // Use API data or fallback to mocks
-  const combined: Product[] = products.length > 0 ? products : mockProducts
-
   const selectedColor = params.get('color') || ''
   const selectedSize = params.get('size') || ''
   const selectedCategory = params.get('category') || ''
@@ -59,7 +54,7 @@ export default function ProductList() {
   const sort = params.get('sort') || 'newest'
 
   const filtered = useMemo(() => {
-    return combined
+    return products
       .filter((p) => !selectedCategory || p.category?.toLowerCase().includes(selectedCategory.toLowerCase()))
       .filter((p) => !selectedColor || p.colors?.includes(selectedColor))
       .filter((p) => !selectedSize || p.sizes?.includes(selectedSize as any))
@@ -72,7 +67,7 @@ export default function ProductList() {
         return true
       })
       .sort(SORTERS[sort] ?? SORTERS.newest)
-  }, [combined, selectedCategory, selectedColor, selectedSize, sort, price])
+  }, [products, selectedCategory, selectedColor, selectedSize, sort, price])
 
   // Reset visible count when filters change
   useEffect(() => {
@@ -197,7 +192,7 @@ export default function ProductList() {
                 name={p.name}
                 price={p.price}
                 images={p.images}
-                isNew={p.isNew}
+                isNew={p.is_new}
               />
             ))}
           </div>

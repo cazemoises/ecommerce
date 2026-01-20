@@ -1,10 +1,16 @@
+import { useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
-import { toast } from 'react-toastify'
+import { useAuthStore } from './store/authStore'
 import Navbar from './components/layout/Navbar'
 import CartDrawer from './components/cart/CartDrawer'
 import ScrollToTop from './components/layout/ScrollToTop'
 
 export default function App() {
+  const checkAuth = useAuthStore((state) => state.checkAuth)
+
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-neutral-900">

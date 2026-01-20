@@ -1,26 +1,83 @@
-import { useState } from 'react'
-import { useCart } from '../../hooks/useCart'
+import { useState, useEffect } from 'react'
+import { useCartStore } from '../../store/cartStore'
+import { useAuthStore } from '../../store/authStore'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { addressSchema, paymentSchema } from '../../lib/validators'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
+import { createOrder } from '../../api/products'
+import { toast } from 'react-toastify'
+import { useNavigate } from 'react-router-dom'
 
-const steps = ['Email', 'Endereço', 'Pagamento']
+const steps = ['Endereço', 'Pagamento']
 
 export default function Checkout() {
-  const { items, subtotal, clear } = useCart()
+  const items = useCartStore((state) => state.items)
+  const getTotal = useCartStore((state) => state.total)
+  const clear = useCartStore((state) => state.clear)
+  const user = useAuthStore((state) => state.user)
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const navigate = useNavigate()
   const [step, setStep] = useState(0)
-  const addressForm = useForm({ resolver: zodResolver(addressSchema) })
-  const paymentForm = useForm({ resolver: zodResolver(paymentSchema) })
-  const emailForm = useForm<{ email: string }>({ defaultValues: { email: '' } })
+  const [submitting, setSubmitting] = useState(false)
+  
+  const addressForm = useForm({ 
+    resolver: zodResolver(addressSchema),
+    defaultValues: {
+      street: '',
+      number: '',
+      complement: '',
+      neighborhood: '',
+      city: '',
+      state: '',
+      postal_code: ''
+    }
+  })
+  const paymentForm = useForm({ 
+    resolver: zodResolver(paymentSchema),
+    defaultValues: {
+      method: 'credit_card'
+    }
+  })
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      toast.error('Faça login para continuar com a compra')
+      navigate('/auth/login', { state: { from: { pathname: '/checkout' } } })
+    }
+  }, [isAuthenticated, navigate])
 
   const next = () => setStep((s) => Math.min(steps.length - 1, s + 1))
   const back = () => setStep((s) => Math.max(0, s - 1))
 
   const onSubmit = async () => {
-    alert('Pedido confirmado!')
-    clear()
+    try {
+      setSubmitting(true)
+      const addressData = addressForm.getValues()
+      const paymentData = paymentForm.getValues()
+      
+      const orderItems = items.map(item => ({
+        product_id: item.product.id,
+        quantity: item.quantity,
+        price: item.product.price,
+        color: item.selectedColor,
+        size: item.selectedSize
+      }))
+
+      const total = getTotal()
+
+      await createOrder(orderItems as any)
+
+      toast.success('Pedido realizado com sucesso!')
+      clear()
+      navigate('/orders')
+    } catch (error: any) {
+      console.error('Order error:', error)
+      toast.error('Erro ao processar pedido. Tente novamente.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -44,19 +101,6 @@ export default function Checkout() {
       <div className="grid md:grid-cols-3 gap-8">
         <div className="md:col-span-2 space-y-8">
           {step === 0 && (
-            <section className="space-y-4 bg-white border border-neutral-200 rounded-2xl p-6">
-              <h2 className="text-xl font-semibold">Autenticação</h2>
-              <p className="text-sm text-neutral-500">Use seu e-mail para continuar como convidado ou entrar depois.</p>
-              <form className="space-y-3" onSubmit={emailForm.handleSubmit(next)}>
-                <Input placeholder="Seu e-mail" type="email" {...emailForm.register('email')} />
-                <div className="flex justify-end">
-                  <Button type="submit">Continuar</Button>
-                </div>
-              </form>
-            </section>
-          )}
-
-          {step === 1 && (
             <section className="space-y-4 bg-white border border-neutral-200 rounded-2xl p-6">
               <h2 className="text-xl font-semibold">Endereço de entrega</h2>
               <form className="grid grid-cols-2 gap-4" onSubmit={addressForm.handleSubmit(next)}>
@@ -91,8 +135,10 @@ export default function Checkout() {
                   <Input placeholder="CVV" {...paymentForm.register('card_cvv')} />
                 </div>
                 <div className="flex justify-between">
-                  <Button type="button" variant="secondary" onClick={back}>Voltar</Button>
-                  <Button type="submit">Finalizar compra</Button>
+                  <Button type="button" variant="secondary" onClick={back} disabled={submitting}>Voltar</Button>
+                  <Button type="submit" disabled={submitting}>
+                    {submitting ? 'Processando...' : 'Finalizar compra'}
+                  </Button>
                 </div>
               </form>
             </section>
@@ -110,7 +156,7 @@ export default function Checkout() {
           </div>
           <div className="mt-4 flex justify-between font-medium">
             <span>Total</span>
-            <span>R$ {subtotal.toFixed(2)}</span>
+            <span>R$ {getTotal().toFixed(2)}</span>
           </div>
           <p className="text-xs text-neutral-500 mt-2">Frete e descontos aplicados na próxima etapa.</p>
         </div>

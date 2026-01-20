@@ -3,24 +3,23 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { loginSchema } from '../../lib/validators'
 import { Input } from '../../components/ui/input'
 import { Button } from '../../components/ui/button'
-import { useAuth } from '../../hooks/useAuth'
+import { useAuthStore } from '../../store/authStore'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import ImageWithFallback from '../../components/ui/ImageWithFallback'
 import { useState } from 'react'
 import { toast } from 'react-toastify'
 
 export default function Login() {
-  const { login } = useAuth()
+  const login = useAuthStore((state) => state.login)
   const navigate = useNavigate()
   const location = useLocation()
   const [isLoading, setIsLoading] = useState(false)
   const form = useForm({ 
     resolver: zodResolver(loginSchema),
-    mode: 'onBlur' // Validate on blur for better UX
+    mode: 'onBlur'
   })
   
-  // Redirecionar para onde o usuário queria ir ou para o perfil
-  const from = (location.state as any)?.from?.pathname || '/profile'
+  const from = (location.state as any)?.from?.pathname || '/'
   
   const onSubmit = form.handleSubmit(async (data) => {
     try {
@@ -33,6 +32,8 @@ export default function Login() {
       
       if (status === 401) {
         toast.error('E-mail ou senha incorretos.')
+      } else if (status === 400) {
+        toast.error('Dados inválidos. Verifique os campos.')
       } else {
         toast.error('Erro ao conectar com o servidor.')
       }

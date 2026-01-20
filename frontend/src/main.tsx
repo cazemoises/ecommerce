@@ -28,7 +28,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         transition={Slide} /* Animação de Slide suave para entrada/saída */
         limit={3}
         toastClassName="luxury-toast"
-        bodyClassName="luxury-toast-body"
         closeButton={false}
       />
     </QueryClientProvider>

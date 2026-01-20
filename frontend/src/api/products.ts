@@ -1,142 +1,78 @@
-import axios from 'axios'
+import { api, ApiResponse } from './client'
 
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
+export type Product = {
+  id: string
+  name: string
+  description?: string
+  price: number
+  images: string[]
+  category?: string
+  sizes?: string[]
+  colors?: string[]
+  stock?: number
+  is_new?: boolean
+  created_at?: string
+  updated_at?: string
+}
 
-export const api = axios.create({ 
-  baseURL,
-  withCredentials: true // Importante para CORS se o backend validar cookies no futuro
-})
-
-// === ADIÇÃO CRÍTICA: Interceptor de Request ===
-// Isso garante que o Token vá em todas as requisições
-api.interceptors.request.use((config) => {
-  // O nome da chave deve ser o mesmo que você usa no useAuth ou login
-  const token = localStorage.getItem('token') 
+/**
+ * Get all products with pagination
+ */
+export async function getAll(page = 1, limit = 12): Promise<Product[]> {
+  const response = await api.get<any, ApiResponse<Product[]>>('/products', {
+    params: { page, limit }
+  })
   
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
+  return response.data
+}
+
+/**
+ * Get single product by ID
+ */
+export async function getById(id: string): Promise<Product> {
+  const response = await api.get<any, ApiResponse<Product>>(`/products/${id}`)
+  return response.data
+}
+
+/**
+ * Search products
+ */
+export async function search(query: string, page = 1, limit = 12): Promise<Product[]> {
+  const response = await api.get<any, ApiResponse<Product[]>>('/products/search', {
+    params: { q: query, page, limit }
+  })
   
-  return config
-}, (error) => {
-  return Promise.reject(error)
-})
-// ==============================================
-
-export type ApiResponse<T> = {
-  success: boolean
-  data: T
-  message?: string
-  error?: string
-  code?: string
-  pagination?: {
-    page: number
-    per_page: number
-    total: number
-    total_pages: number
-  }
-}
-
-// ===== PRODUCTS API =====
-export async function getProducts(page = 1, limit = 12) {
-  try {
-    const response = await api.get<ApiResponse<any[]>>('/products', {
-      params: { page, limit }
-    })
-    return response.data.data
-  } catch (error) {
-    console.error('Error fetching products:', error)
-    throw error
-  }
-}
-
-export async function getProduct(id: string) {
-  try {
-    const response = await api.get<ApiResponse<any>>(`/products/${id}`)
-    return response.data.data
-  } catch (error) {
-    console.error('Error fetching product:', error)
-    throw error
-  }
-}
-
-// ===== AUTH API =====
-export async function login(email: string, password: string) {
-  try {
-    const response = await api.post<ApiResponse<any>>('/auth/login', {
-      email,
-      password
-    })
-    const { data } = response.data
-    if (data.token) {
-      localStorage.setItem('token', data.token)
-    }
-    return data
-  } catch (error) {
-    console.error('Error logging in:', error)
-    throw error
-  }
-}
-
-export async function register(name: string, email: string, password: string) {
-  try {
-    const response = await api.post<ApiResponse<any>>('/auth/register', {
-      name,
-      email,
-      password
-    })
-    const { data } = response.data
-    if (data.token) {
-      localStorage.setItem('token', data.token)
-    }
-    return data
-  } catch (error) {
-    console.error('Error registering:', error)
-    throw error
-  }
-}
-
-export async function getCurrentUser() {
-  try {
-    const response = await api.get<ApiResponse<any>>('/auth/me')
-    return response.data.data
-  } catch (error) {
-    console.error('Error fetching current user:', error)
-    throw error
-  }
+  return response.data
 }
 
 // ===== ORDERS API =====
 export async function createOrder(items: Array<{ product_id: string; quantity: number; color?: string; size?: string }>) {
-  try {
-    const response = await api.post<ApiResponse<any>>('/orders', {
-      items
-    })
-    return response.data.data
-  } catch (error) {
-    console.error('Error creating order:', error)
-    throw error
-  }
+  const response = await api.post<any, ApiResponse<any>>('/orders', { items })
+  return response.data
 }
 
 export async function getOrders(page = 1, limit = 10) {
-  try {
-    const response = await api.get<ApiResponse<any[]>>('/orders/my-orders', {
-      params: { page, limit }
-    })
-    return response.data.data
-  } catch (error) {
-    console.error('Error fetching orders:', error)
-    throw error
-  }
+  const response = await api.get<any, ApiResponse<any[]>>('/orders/my-orders', {
+    params: { page, limit }
+  })
+  return response.data
 }
 
 export async function getOrder(id: string) {
-  try {
-    const response = await api.get<ApiResponse<any>>(`/orders/${id}`)
-    return response.data.data
-  } catch (error) {
-    console.error('Error fetching order:', error)
-    throw error
-  }
+  const response = await api.get<any, ApiResponse<any>>(`/orders/${id}`)
+  return response.data
+}
+
+// Legacy functions for backward compatibility
+export async function getProducts(page = 1, limit = 12) {
+  return getAll(page, limit)
+}
+
+export async function getProduct(id: string) {
+  return getById(id)
+}
+
+export async function getCurrentUser() {
+  const response = await api.get<any, ApiResponse<any>>('/auth/me')
+  return response.data
 }

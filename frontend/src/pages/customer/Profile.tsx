@@ -1,21 +1,32 @@
-import { useState } from 'react'
-import { useAuth } from '../../hooks/useAuth'
+import { useState, useEffect } from 'react'
+import { useAuthStore } from '../../store/authStore'
 import { useNavigate, Link } from 'react-router-dom'
-import { products } from '../../lib/mockData'
-import ProductCard from '../../components/product/ProductCard'
-
-const ordersMock = [
-  { id: 'ord-1021', status: 'Enviado', total: 789.9, date: '2026-01-02' },
-  { id: 'ord-1018', status: 'Entregue', total: 329.0, date: '2025-12-20' },
-]
-
+import { getOrders } from '../../api/products'
 import { Package, MapPin, Settings, LogOut } from 'lucide-react'
 
 export default function Profile() {
-  const { user, logout } = useAuth()
+  const user = useAuthStore((state) => state.user)
+  const logout = useAuthStore((state) => state.logout)
   const navigate = useNavigate()
   const [tab, setTab] = useState<'orders' | 'wishlist'>('orders')
-  const wishlist = products.slice(0, 4)
+  const [orders, setOrders] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        setLoading(true)
+        const data = await getOrders()
+        setOrders(Array.isArray(data) ? data : [])
+      } catch (error) {
+        console.error('Error fetching orders:', error)
+        setOrders([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchOrders()
+  }, [])
 
   // No need for manual guard - ProtectedRoute handles redirect
   
@@ -82,24 +93,28 @@ export default function Profile() {
 
       {tab === 'orders' && (
         <div className="space-y-3">
-          {ordersMock.map((o) => (
-            <div key={o.id} className="flex items-center justify-between rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-              <div>
-                <div className="text-sm font-semibold">Pedido {o.id}</div>
-                <div className="text-xs text-neutral-500">{o.date}</div>
+          {loading ? (
+            <div className="text-center py-8 text-neutral-500">Carregando pedidos...</div>
+          ) : orders.length === 0 ? (
+            <div className="text-center py-8 text-neutral-500">Você ainda não fez nenhum pedido.</div>
+          ) : (
+            orders.map((o) => (
+              <div key={o.id} className="flex items-center justify-between rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+                <div>
+                  <div className="text-sm font-semibold">Pedido #{o.id}</div>
+                  <div className="text-xs text-neutral-500">{new Date(o.created_at).toLocaleDateString('pt-BR')}</div>
+                </div>
+                <div className="text-sm text-neutral-700">{o.status || 'Processando'}</div>
+                <div className="text-sm font-medium">R$ {Number(o.total_amount || 0).toFixed(2)}</div>
               </div>
-              <div className="text-sm text-neutral-700">{o.status}</div>
-              <div className="text-sm font-medium">R$ {o.total.toFixed(2)}</div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       )}
 
       {tab === 'wishlist' && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-2 gap-y-6 sm:gap-4 md:gap-6">
-          {wishlist.map((p) => (
-            <ProductCard key={p.id} id={p.id} name={p.name} price={p.price} images={p.images} isNew={p.isNew} />
-          ))}
+        <div className="text-center py-8 text-neutral-500">
+          Sua wishlist está vazia. Adicione produtos aos favoritos!
         </div>
       )}
     </div>

@@ -10,6 +10,7 @@ import (
 	"ecommerce/internal/middleware"
 	"ecommerce/internal/repository"
 	"ecommerce/internal/service"
+	"ecommerce/seeds"
 
 	"github.com/gin-gonic/gin"
 )
@@ -38,6 +39,13 @@ func main() {
 		log.Fatalf("failed to migrate database: %v", err)
 	}
 	log.Println("Database migration completed successfully!")
+	// ============================================================
+
+	// ============================================================
+	// SEED DATABASE: Populate with initial data
+	// ============================================================
+	log.Println("Running database seeds...")
+	seeds.Run(db)
 	// ============================================================
 
 	// ===== REPOSITORIES =====
