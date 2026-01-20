@@ -1,0 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-heading: 'Playfair Display', 'Times New Roman', serif;
+  --font-sans: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, 'Helvetica Neue', Arial, 'Noto Sans';
+  --color-bg: #fafafa;
+  --color-text: #0f0f0f;
+  --color-muted: #4b5563;
+  --color-primary: #0f0f0f;
+  --color-accent: #111827;
+  --color-success: #16a34a;
+  --color-error: #dc2626;
+}
+
+html, body, #root { height: 100%; }
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.02em;
+}
+
+a { text-decoration: none; }
+
+.embla { position: relative; }
+.embla__container { will-change: transform; }
+.embla__slide { position: relative; }
